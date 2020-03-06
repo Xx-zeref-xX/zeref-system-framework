@@ -1,11 +1,12 @@
-<?php
+	<?php
 /**
  * Created on Mar 5, 2020
+ * Updata on Mar 6, 2020
  * @author Alexandre Bezerra Barbosa
  * @email alxbbarbosa@yahoo.com.br
  * @author Gabriel Assuero
  * @email gabrielassuerors@gmail.com
- * Version 1.0 final
+ * Version 1.1.0
  */
 
 /**
@@ -18,7 +19,7 @@
 abstract class ActiveRecord {
 
 	private $content;
-	private $tableRows;
+	protected $tableRows;
 	protected $idField;
 	protected $table;
 	protected $logTimestamp;
@@ -26,8 +27,7 @@ abstract class ActiveRecord {
 	public function __construct(){
 		if(empty($this->tableRows)){
 
-			echo "<pre>$tableRows is null! insert rows nunber manually</pre>";
-			$this->tableRows = NULL;
+			$this->tableRows = 'NULL';
 		}
 		if(!is_bool($this->logTimestamp)){
 
@@ -43,9 +43,18 @@ abstract class ActiveRecord {
 		}
 	}
 
+	public function setRows($key){
+
+		$this->tableRows = $key;
+	}
+
+	public function getRows(){
+		return $this->tableRows;
+	}
+
 	public function __set($key, $value){
 
-		$this->$content[$key] == $value;	
+		$this->content[$key] = $value;	
 	}
 
 	public function __get($key){
@@ -60,7 +69,7 @@ abstract class ActiveRecord {
 
 	public function __unset($key){
 
-		if(isset($key){
+		if(isset($key)){
 			unset($this->content[$key]);
 			return TRUE;
 		}
@@ -106,7 +115,7 @@ abstract class ActiveRecord {
 
 		switch ($value) {
 			case is_string($value) && !empty($value):
-				return "'". addcslashes($value) . "'"
+				return "'{$value}'";
 				break;
 
 			case is_bool($value):
@@ -132,14 +141,15 @@ abstract class ActiveRecord {
 				$newContent[$key] = $this->format($value);
 			}
 		}
+		return $newContent;
 
 	}
 
-	//CRUD 
+	//---------------------------------- SAVE -------------------------------------------- 
 
-	protected function save(){
+	public function save(){
 
-		$newContent = $this->convertContent();
+		$newContent = $this->cvtContent();
  
 	    if (isset($this->content[$this->idField])) {
 
@@ -155,11 +165,104 @@ abstract class ActiveRecord {
 
 	    } else {
 
+	    	if ($this->logTimestamp === TRUE) {
+
+	            $newContent['created_at'] = "'" . date('Y-m-d H:i:s') . "'";
+	            $newContent['updated_at'] = "'" . date('Y-m-d H:i:s') . "'";
+        	}
+
 	        $sql = "INSERT INTO {$this->table} (" . implode(', ', array_keys($newContent)) . ') VALUES (' . implode(',', array_values($newContent)) . ');';
 	    }
-	    echo $sql;
+
+	    if ($connection = Connection::getInstance('./configdb.ini')) {
+
+		    return $connection->exec($sql);
+		} else {
+
+		    throw new Exception('ERROR: CNT_NOT_FOUND');
+		}
 
 	}
+
+	//---------------------------------- FIND --------------------------------------------
+
+	public static function find($key){
+
+		$class = get_called_class();
+		$idField = (new $class())->idField;
+		$table = (new $class())->table;
+
+		$sql = 'SELECT * FROM'. (is_null($table) ? strtolower($class) : $table);
+		$sql .= ' WHERE '. (is_null($idField) ? 'id' : $idField);
+		$sql .= " = {$key}";
+
+		if($connection = Connection::getInstance('./configdb.ini')){
+
+			$result = $connection->query($sql);
+			if($result){
+
+				$newObject = $result->fetchObject(get_called_class());
+			}
+			return $newObject;
+
+		} else {
+
+			throw new Exception('ERROR: CNT_NOT_FOUND');
+		}
+
+	}
+
+	//---------------------------------- DELETE -------------------------------------------
+
+
+	public function delete(){
+
+		if(isset($this->content[$this->idField])){
+
+			$sql = "DELETE FROM {$this->table} WHERE {$this->idField} = {$this->content[$this->idField]}";
+
+			if($connection = Connection::getInstance('./configdb.ini')){
+
+				return $connection->query($sql);
+			} else {
+
+				throw new Exception('ERROR: CNT_NOT_FOUND');
+			}
+		}
+	}
+
+	//---------------------------------- LIST ALL -----------------------------------------
+
+	public static function all(string $filter = '', int $limit = 0, int $offset = 0){
+
+		$class = get_called_class();
+		$table = (new $class())->table;
+
+		$sql = 'SELECT * FROM'. (is_null($table) ? strtolower($class) : $table);
+		$sql .= ($filter !== '') ? "WHERE {$filter}" : "";
+		$sql .= ($limit >0) ? "LIMIT {$limit}" : "";
+		$sql .= ($offset >0) ? "OFFSET {$offset}" : "";
+		$sql .= ';'; 
+		
+		if($connection = Connection::getInstance('./configdb.ini')){
+
+			$result = $connection->query($sql);
+			return $result->fetchAll(PDO::FETCH_CLASS, get_called_class());
+		} else {
+
+			throw new Exception('ERROR: CNT_NOT_FOUND');
+		}
+
+	}
+
+	//---------------------------------- FIND FIRST ---------------------------------------
+
+
+	public static function findFisrt(string $filter = ''){
+
+	    return self::all($filter, 1);
+	}
+
 
 
 
