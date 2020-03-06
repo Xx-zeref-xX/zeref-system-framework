@@ -9,6 +9,9 @@
  * Version 1.0 final
  */
 
+define('conf', '../config/configdb.ini');
+
+
 final class Connection{
 
 
@@ -19,12 +22,12 @@ final class Connection{
     }   
  
  
-    private static function load(string $arquivo = 'configdb.ini'): array{
+    private static function load(string $arquivo = conf): array{
  
         if(file_exists($arquivo)) {
             $dados = parse_ini_file($arquivo);
         } else {
-            throw new Exception('Erro: Arquivo não encontrado');
+            throw new Exception('ERROR: ACH_NOT_FOUND');
         }
         return $dados;
     }
@@ -74,16 +77,23 @@ final class Connection{
                     return new PDO("firebird:dbname={$banco}",$usuario, $senha);
                     break;
 
+                /*
+                *
+                * add mongo suport
+                *
+                */
+
+
             }
 
         } else {
 
-            throw new Exception('Erro: tipo de banco de dados não informado');
+            throw new Exception('ERROR: CNT_NOT_FOUND');
         }
 
     }
 
-    public static function getInstance(string $arquivo): PDO{
+    public static function getInstance(string $arquivo = conf): PDO{
 
         if(self::$connection == NULL) {
            self::$connection = self::make(self::load($arquivo));
