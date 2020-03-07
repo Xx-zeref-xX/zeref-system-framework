@@ -8,7 +8,7 @@
  * Version 1.0.0
  */
 
-Class MainController{
+abstract Class MainController{
 
 
 	private $content;
@@ -24,19 +24,19 @@ Class MainController{
 				return filter_var($value, FILTER_SANITIZE_EMAIL);
 				break;
 
-			case 'int'
+			case 'int':
 				return filter_var($value, FILTER_SANITIZE_NUMBER_INT);
 				break;
 
-			case 'float'
+			case 'float':
 				return filter_var($value, FILTER_SANITIZE_NUMBER_FLOAT);
 				break;
 
-			case 'all'
+			case 'all':
 				return filter_var($value, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 				break;
 
-			case 'url'
+			case 'url':
 				return filter_var($value, FILTER_SANITIZE_URL);
 				break;
 
